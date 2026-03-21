@@ -78,7 +78,7 @@
     color: rgba(255,255,255,0.05); z-index: 0;
   }
   .team-battle-grid {
-    display: grid; grid-template-columns: 1fr auto 1fr;
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
     align-items: center; gap: 24px; position: relative; z-index: 1;
   }
   .team-side { text-align: center; }
@@ -158,9 +158,9 @@
     background: rgba(244,67,54,0.2); color: var(--red); font-weight: 600;
   }
   .game-row {
-    display: flex; align-items: center; gap: 6px;
-    padding: 7px 16px; border-bottom: 1px solid rgba(42,48,64,0.3);
-    font-size: 0.85rem; flex-wrap: wrap;
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    padding: 8px 16px; border-bottom: 1px solid rgba(42,48,64,0.3);
+    align-items: center; font-size: 0.85rem;
   }
   .game-row:last-child { border-bottom: none; }
   
@@ -272,9 +272,33 @@ const TEAM_NAMES = {"DUKE":"Duke","SIENA":"Siena","OHIOST":"Ohio St.","TCU":"TCU
 function computeScores(){const r=[];for(const[n,picks]of Object.entries(PICKS)){let t=0;const br={2:0,3:0,4:0,5:0,6:0,7:0};let mx=0;for(let i=0;i<63;i++){const m=MATCHUPS[i],rd=m[0],w=m[6],p=picks[i],pts=SCORING[rd];if(w&&w===p){t+=pts;br[rd]+=pts}if(w){if(w===p)mx+=pts}else{if(isTeamAlive(p))mx+=pts}}const tm=FAMILY_TEAMS.Boise.includes(n)?'boise':'burditt';r.push({name:n,team:tm,pts:t,max:t+mx,byRound:br})}r.sort((a,b)=>b.pts-a.pts||b.max-a.max);let rk=1;for(let i=0;i<r.length;i++){if(i>0&&r[i].pts<r[i-1].pts)rk=i+1;r[i].rank=rk}return r}
 function isTeamAlive(ab){for(let i=0;i<63;i++){const m=MATCHUPS[i],w=m[6];if(!w)continue;if((m[2]===ab||m[4]===ab)&&w!==ab)return false}return true}
 function getCompletedRounds(){const rc={},rd={};for(let i=0;i<63;i++){const r=MATCHUPS[i][0];rc[r]=(rc[r]||0)+1;if(MATCHUPS[i][6])rd[r]=(rd[r]||0)+1}const s={};for(const r of[2,3,4,5,6,7]){const t=rc[r]||0,d=rd[r]||0;if(d===t&&t>0)s[r]='completed';else if(d>0)s[r]='active';else s[r]='upcoming'}return s}
-function getResultsByRegion(){const rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){if(m[6]){const d=GAME_DETAILS[i];rg[m[1]].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:(m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5]),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null})}});return rg}
+function getResultsByRegion(){var rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){if(m[6]){var d=GAME_DETAILS?GAME_DETAILS[i]:null;rg[m[1]].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:(m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5]),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null})}});return rg}
 function switchTab(tn,btn){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+tn).classList.add('active');btn.classList.add('active')}
 function rankColor(r){return r===1?'rank-1':r===2?'rank-2':r===3?'rank-3':''}
+function renderResults(){
+var rn={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST"};
+var rc={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12"};
+var rdNames={2:"Round 1",3:"Round 2",4:"Sweet 16",5:"Elite Eight",6:"Final Four",7:"Championship"};
+var rbr=getResultsByRegion();
+var out=["E","S","W","M"].map(function(r){
+var games=rbr[r];if(!games.length)return"";
+var ups=games.filter(function(g){return g.upset}).length;
+var byRd={};games.forEach(function(g){if(!byRd[g.round])byRd[g.round]=[];byRd[g.round].push(g)});
+var hdr='<div class="region-card"><div class="region-header" style="border-left:3px solid '+rc[r]+'">'+rn[r]+' Region'+(ups?' <span class="seed-badge">'+ups+' upset'+(ups>1?'s':'')+'</span>':'')+'</div>';
+var body=Object.keys(byRd).sort().map(function(rd){
+var rg=byRd[rd];
+var rh=Object.keys(byRd).length>1?'<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 16px 2px;font-weight:600">'+rdNames[rd]+'</div>':'';
+return rh+rg.map(function(g){
+var tn=TEAM_NAMES;var tW=g.winner===g.topTeam;
+var tN=tn[g.topTeam]||g.topTeam;var bN=tn[g.bottomTeam]||g.bottomTeam;
+var tC=tW?"gw":"gl";var bC=tW?"gl":"gw";
+var tS=g.topScore!==null?" "+g.topScore:"";var bS=g.bottomScore!==null?" "+g.bottomScore:"";
+var dt=g.date?'<span class="gdt">'+g.date+'</span>':"";
+var up=g.upset?' <span class="upset-badge">UPSET</span>':"";
+return'<div class="game-row">'+dt+'<span class="'+tC+'"><span class="gs">('+g.topSeed+')</span>'+tN+tS+'</span> <span class="gvs">vs</span> <span class="'+bC+'"><span class="gs">('+g.bottomSeed+')</span>'+bN+bS+'</span>'+up+'</div>'
+}).join("")}).join("");
+return hdr+body+'</div>'}).join("");
+document.getElementById("results-grid").innerHTML=out}
 function render(){const st=computeScores(),rs=getCompletedRounds();
 document.getElementById('last-updated').textContent='Last updated: '+new Date().toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
 document.getElementById('tournament-progress').innerHTML=[2,3,4,5,6,7].map(r=>'<span class="round-pill '+rs[r]+'">'+ROUND_NAMES[r]+'</span>').join('');
@@ -289,6 +313,6 @@ document.getElementById('boise-breakdown').innerHTML=bs.map((p,i)=>'<tr><td clas
 document.getElementById('burditt-breakdown').innerHTML=us.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell">'+p.name.split(' ')[0]+'</td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
 const mx=Math.max(...st.map(p=>p.pts));
 const rr=getResultsByRegion(),co={"E":"#4a90d9","W":"#d94a4a","S":"#4caf50","M":"#ff8c00"};
-const rn={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST"};const rc={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12"};const rbr=getResultsByRegion();const roundNames={2:"Round 1",3:"Round 2",4:"Sweet 16",5:"Elite Eight",6:"Final Four",7:"Championship"};document.getElementById('results-grid').innerHTML=["E","S","W","M"].map(function(r){const games=rbr[r];if(!games.length)return'';const upsets=games.filter(function(g){return g.upset}).length;const byRound={};games.forEach(function(g){if(!byRound[g.round])byRound[g.round]=[];byRound[g.round].push(g)});return'<div class="region-card"><div class="region-header" style="border-left:3px solid '+rc[r]+'">'+rn[r]+' Region'+(upsets?' <span class="seed-badge">'+upsets+' upset'+(upsets>1?'s':'')+'</span>':'')+'</div>'+Object.keys(byRound).sort().map(function(rd){var rgames=byRound[rd];var roundHdr=Object.keys(byRound).length>1?'<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 16px 2px;font-weight:600">'+roundNames[rd]+'</div>':'';return roundHdr+rgames.map(function(g){var tn=TEAM_NAMES;var tIsW=g.winner===g.topTeam;var topName=tn[g.topTeam]||g.topTeam;var botName=tn[g.bottomTeam]||g.bottomTeam;var topCls=tIsW?'gw':'gl';var botCls=tIsW?'gl':'gw';var topScr=g.topScore!==null?' '+g.topScore:'';var botScr=g.bottomScore!==null?' '+g.bottomScore:'';var dt=g.date?'<span class="gdt">'+g.date+'</span>':'';return'<div class="game-row">'+dt+'<span class="'+topCls+'"><span class="gs">('+g.topSeed+')</span>'+topName+topScr+'</span> <span class="gvs">vs</span> <span class="'+botCls+'"><span class="gs">('+g.bottomSeed+')</span>'+botName+botScr+'</span>'+(g.upset?' <span class="upset-badge">UPSET</span>':'')+'</div>'}).join('')}).join('')+'</div>'}).join('')).join('')+'</div>'}).join('')}
+renderResults()}
 render();
 </script></body></html>
