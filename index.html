@@ -166,9 +166,9 @@
   .game-team { display: flex; align-items: center; gap: 6px; }
   .game-team.right { justify-content: flex-end; }
   .game-seed { color: var(--text-muted); font-size: 0.75rem; }
-  .game-winner { font-weight: 700; }
+  .game-winner { font-weight: 700; color: #4ade80; }
   .game-loser { color: var(--text-muted); }
-  .game-score { text-align: center; font-weight: 600; padding: 0 12px; font-variant-numeric: tabular-nums; }
+  
   .upset-badge {
     font-size: 0.6rem; padding: 1px 5px; border-radius: 4px;
     background: rgba(244,67,54,0.3); color: var(--red); font-weight: 700; margin-left: 4px;
@@ -285,6 +285,6 @@ document.getElementById('boise-breakdown').innerHTML=bs.map((p,i)=>'<tr><td clas
 document.getElementById('burditt-breakdown').innerHTML=us.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell">'+p.name.split(' ')[0]+'</td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
 const mx=Math.max(...st.map(p=>p.pts));
 const rr=getResultsByRegion(),co={"E":"#4a90d9","W":"#d94a4a","S":"#4caf50","M":"#ff8c00"};
-document.getElementById('results-grid').innerHTML=["E","S","W","M"].map(rg=>{const gm=rr[rg];if(!gm.length)return'';const br={};gm.forEach(g=>{if(!br[g.round])br[g.round]=[];br[g.round].push(g)});const uc=gm.filter(g=>g.upset).length;return '<div class="region-card"><div class="region-header" style="border-left:3px solid '+co[rg]+'">'+REGION_FULL[rg]+' Region '+(uc>0?'<span class="seed-badge">'+uc+' upset'+(uc>1?'s':'')+'</span>':'')+'</div>'+Object.entries(br).sort((a,b)=>a[0]-b[0]).map(([rd,rGm])=>{const rl=parseInt(rd)>2?'<div style="padding:6px 16px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;border-bottom:1px solid rgba(42,48,64,0.3)">'+ROUND_NAMES[rd]+'</div>':'';return rl+rGm.map(g=>{const t1=TEAM_NAMES[g.topTeam]||g.topTeam,t2=TEAM_NAMES[g.bottomTeam]||g.bottomTeam,w1=g.winner===g.topTeam;return '<div class="game-row"><div class="game-team '+(w1?'game-winner':'game-loser')+'"><span class="game-seed">('+g.topSeed+')</span>'+t1+(!w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div><div class="game-score">W</div><div class="game-team right '+(w1?'game-loser':'game-winner')+'">'+t2+'<span class="game-seed">('+g.bottomSeed+')</span>'+(w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div></div>'}).join('')}).join('')+'</div>'}).join('')}
+document.getElementById('results-grid').innerHTML=["E","S","W","M"].map(rg=>{const gm=rr[rg];if(!gm.length)return'';const br={};gm.forEach(g=>{if(!br[g.round])br[g.round]=[];br[g.round].push(g)});const uc=gm.filter(g=>g.upset).length;return '<div class="region-card"><div class="region-header" style="border-left:3px solid '+co[rg]+'">'+REGION_FULL[rg]+' Region '+(uc>0?'<span class="seed-badge">'+uc+' upset'+(uc>1?'s':'')+'</span>':'')+'</div>'+Object.entries(br).sort((a,b)=>a[0]-b[0]).map(([rd,rGm])=>{const rl=parseInt(rd)>2?'<div style="padding:6px 16px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;border-bottom:1px solid rgba(42,48,64,0.3)">'+ROUND_NAMES[rd]+'</div>':'';return rl+rGm.map(g=>{const t1=TEAM_NAMES[g.topTeam]||g.topTeam,t2=TEAM_NAMES[g.bottomTeam]||g.bottomTeam,w1=g.winner===g.topTeam;return '<div class="game-row"><div class="game-team '+(w1?'game-winner':'game-loser')+'"><span class="game-seed">('+g.topSeed+')</span>'+t1+(!w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div><div class="game-team right '+(w1?'game-loser':'game-winner')+'">'+t2+'<span class="game-seed">('+g.bottomSeed+')</span>'+(w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div></div>'}).join('')}).join('')+'</div>'}).join('')}
 render();
 </script></body></html>
