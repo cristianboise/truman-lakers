@@ -158,16 +158,18 @@
     background: rgba(244,67,54,0.2); color: var(--red); font-weight: 600;
   }
   .game-row {
-    display: grid; grid-template-columns: 1fr auto 1fr;
-    padding: 8px 16px; border-bottom: 1px solid rgba(42,48,64,0.3);
-    align-items: center; font-size: 0.85rem;
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 16px; border-bottom: 1px solid rgba(42,48,64,0.3);
+    font-size: 0.85rem; flex-wrap: wrap;
   }
   .game-row:last-child { border-bottom: none; }
-  .game-team { display: flex; align-items: center; gap: 6px; }
-  .game-team.right { justify-content: flex-end; }
-  .game-seed { color: var(--text-muted); font-size: 0.75rem; }
-  .game-winner { font-weight: 700; color: #4ade80; }
-  .game-loser { color: var(--text-muted); }
+  
+  
+  .gs { color: var(--text-muted); font-size: 0.8rem; margin-right: 1px; }
+  .gdt { color: var(--text-muted); font-size: 0.8rem; min-width: 32px; margin-right: 6px; }
+  .gvs { color: var(--text-muted); font-size: 0.8rem; margin: 0 2px; }
+  .gw { font-weight: 700; color: #4ade80; }
+  .gl { color: var(--text-muted); }
   
   .upset-badge {
     font-size: 0.6rem; padding: 1px 5px; border-radius: 4px;
@@ -245,6 +247,8 @@ const MATCHUPS = [
   [4,"M",null,null,null,null,"",59],[4,"M",null,null,null,null,"",59],[5,"M",null,null,null,null,"",61],
   [6,"F",null,null,null,null,"",62],[6,"F",null,null,null,null,"",62],[7,"F",null,null,null,null,"",-1]
 ];
+const GAME_DETAILS={0:[71,65,"3/19"],1:[64,66,"3/19"],2:[79,53,"3/20"],3:[68,60,"3/20"],4:[83,79,"3/19"],5:[92,67,"3/19"],6:[75,71,"3/20"],7:[82,71,"3/20"],15:[114,55,"3/20"],16:[61,67,"3/20"],17:[78,68,"3/19"],18:[76,47,"3/19"],19:[78,82,"3/19"],20:[105,70,"3/19"],21:[50,63,"3/19"],22:[78,47,"3/19"],30:[92,58,"3/20"],31:[76,86,"3/20"],32:[82,83,"3/19"],33:[97,78,"3/19"],34:[71,79,"3/19"],35:[73,64,"3/19"],36:[80,66,"3/20"],37:[104,71,"3/20"],45:[101,80,"3/20"],46:[77,102,"3/20"],47:[91,71,"3/20"],48:[90,70,"3/20"],49:[78,56,"3/20"],50:[82,73,"3/20"],51:[89,84,"3/20"],52:[108,74,"3/20"]};
+
 const PICKS = {
   "Cristian Boise":["DUKE","OHIOST","STJOHN","KANSAS","LVILLE","MICHST","UCLA","UCONN","DUKE","STJOHN","MICHST","UCONN","DUKE","UCONN","DUKE","FLA","IOWA","VANDY","NEB","VCU","ILL","TEXAM","HOU","FLA","VANDY","ILL","HOU","FLA","HOU","HOU","ARIZ","NOVA","WISC","ARK","BYU","GONZAG","MIAMI","PURDUE","ARIZ","ARK","GONZAG","PURDUE","ARIZ","PURDUE","ARIZ","MICH","STLOU","TXTECH","BAMA","TENN","UVA","UK","IOWAST","MICH","BAMA","UVA","IOWAST","MICH","IOWAST","MICH","HOU","ARIZ","ARIZ"],
   "Josué Boise":["DUKE","OHIOST","STJOHN","KANSAS","LVILLE","MICHST","UCLA","UCONN","DUKE","STJOHN","LVILLE","UCONN","DUKE","UCONN","DUKE","FLA","IOWA","VANDY","NEB","VCU","ILL","TEXAM","HOU","FLA","VANDY","ILL","HOU","FLA","HOU","HOU","ARIZ","NOVA","WISC","ARK","BYU","GONZAG","MIAMI","PURDUE","ARIZ","ARK","GONZAG","PURDUE","ARIZ","PURDUE","ARIZ","MICH","STLOU","TXTECH","BAMA","MIAOH","UVA","UK","IOWAST","MICH","TXTECH","UVA","IOWAST","MICH","IOWAST","MICH","DUKE","MICH","DUKE"],
@@ -268,7 +272,7 @@ const TEAM_NAMES = {"DUKE":"Duke","SIENA":"Siena","OHIOST":"Ohio St.","TCU":"TCU
 function computeScores(){const r=[];for(const[n,picks]of Object.entries(PICKS)){let t=0;const br={2:0,3:0,4:0,5:0,6:0,7:0};let mx=0;for(let i=0;i<63;i++){const m=MATCHUPS[i],rd=m[0],w=m[6],p=picks[i],pts=SCORING[rd];if(w&&w===p){t+=pts;br[rd]+=pts}if(w){if(w===p)mx+=pts}else{if(isTeamAlive(p))mx+=pts}}const tm=FAMILY_TEAMS.Boise.includes(n)?'boise':'burditt';r.push({name:n,team:tm,pts:t,max:t+mx,byRound:br})}r.sort((a,b)=>b.pts-a.pts||b.max-a.max);let rk=1;for(let i=0;i<r.length;i++){if(i>0&&r[i].pts<r[i-1].pts)rk=i+1;r[i].rank=rk}return r}
 function isTeamAlive(ab){for(let i=0;i<63;i++){const m=MATCHUPS[i],w=m[6];if(!w)continue;if((m[2]===ab||m[4]===ab)&&w!==ab)return false}return true}
 function getCompletedRounds(){const rc={},rd={};for(let i=0;i<63;i++){const r=MATCHUPS[i][0];rc[r]=(rc[r]||0)+1;if(MATCHUPS[i][6])rd[r]=(rd[r]||0)+1}const s={};for(const r of[2,3,4,5,6,7]){const t=rc[r]||0,d=rd[r]||0;if(d===t&&t>0)s[r]='completed';else if(d>0)s[r]='active';else s[r]='upcoming'}return s}
-function getResultsByRegion(){const rg={"E":[],"S":[],"W":[],"M":[]};for(let i=0;i<63;i++){const m=MATCHUPS[i];if(m[6]&&m[2]&&m[1]!=='F'){const up=(m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5]);rg[m[1]].push({round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:up})}}return rg}
+function getResultsByRegion(){const rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){if(m[6]){const d=GAME_DETAILS[i];rg[m[1]].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:(m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5]),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null})}});return rg}
 function switchTab(tn,btn){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+tn).classList.add('active');btn.classList.add('active')}
 function rankColor(r){return r===1?'rank-1':r===2?'rank-2':r===3?'rank-3':''}
 function render(){const st=computeScores(),rs=getCompletedRounds();
@@ -285,6 +289,6 @@ document.getElementById('boise-breakdown').innerHTML=bs.map((p,i)=>'<tr><td clas
 document.getElementById('burditt-breakdown').innerHTML=us.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell">'+p.name.split(' ')[0]+'</td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
 const mx=Math.max(...st.map(p=>p.pts));
 const rr=getResultsByRegion(),co={"E":"#4a90d9","W":"#d94a4a","S":"#4caf50","M":"#ff8c00"};
-document.getElementById('results-grid').innerHTML=["E","S","W","M"].map(rg=>{const gm=rr[rg];if(!gm.length)return'';const br={};gm.forEach(g=>{if(!br[g.round])br[g.round]=[];br[g.round].push(g)});const uc=gm.filter(g=>g.upset).length;return '<div class="region-card"><div class="region-header" style="border-left:3px solid '+co[rg]+'">'+REGION_FULL[rg]+' Region '+(uc>0?'<span class="seed-badge">'+uc+' upset'+(uc>1?'s':'')+'</span>':'')+'</div>'+Object.entries(br).sort((a,b)=>a[0]-b[0]).map(([rd,rGm])=>{const rl=parseInt(rd)>2?'<div style="padding:6px 16px;font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;border-bottom:1px solid rgba(42,48,64,0.3)">'+ROUND_NAMES[rd]+'</div>':'';return rl+rGm.map(g=>{const t1=TEAM_NAMES[g.topTeam]||g.topTeam,t2=TEAM_NAMES[g.bottomTeam]||g.bottomTeam,w1=g.winner===g.topTeam;return '<div class="game-row"><div class="game-team '+(w1?'game-winner':'game-loser')+'"><span class="game-seed">('+g.topSeed+')</span>'+t1+(!w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div><div class="game-team right '+(w1?'game-loser':'game-winner')+'">'+t2+'<span class="game-seed">('+g.bottomSeed+')</span>'+(w1&&g.upset?'<span class="upset-badge">UPSET</span>':'')+'</div></div>'}).join('')}).join('')+'</div>'}).join('')}
+const rn={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST"};const rc={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12"};const rbr=getResultsByRegion();const roundNames={2:"Round 1",3:"Round 2",4:"Sweet 16",5:"Elite Eight",6:"Final Four",7:"Championship"};document.getElementById('results-grid').innerHTML=["E","S","W","M"].map(function(r){const games=rbr[r];if(!games.length)return'';const upsets=games.filter(function(g){return g.upset}).length;const byRound={};games.forEach(function(g){if(!byRound[g.round])byRound[g.round]=[];byRound[g.round].push(g)});return'<div class="region-card"><div class="region-header" style="border-left:3px solid '+rc[r]+'">'+rn[r]+' Region'+(upsets?' <span class="seed-badge">'+upsets+' upset'+(upsets>1?'s':'')+'</span>':'')+'</div>'+Object.keys(byRound).sort().map(function(rd){var rgames=byRound[rd];var roundHdr=Object.keys(byRound).length>1?'<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 16px 2px;font-weight:600">'+roundNames[rd]+'</div>':'';return roundHdr+rgames.map(function(g){var tn=TEAM_NAMES;var tIsW=g.winner===g.topTeam;var topName=tn[g.topTeam]||g.topTeam;var botName=tn[g.bottomTeam]||g.bottomTeam;var topCls=tIsW?'gw':'gl';var botCls=tIsW?'gl':'gw';var topScr=g.topScore!==null?' '+g.topScore:'';var botScr=g.bottomScore!==null?' '+g.bottomScore:'';var dt=g.date?'<span class="gdt">'+g.date+'</span>':'';return'<div class="game-row">'+dt+'<span class="'+topCls+'"><span class="gs">('+g.topSeed+')</span>'+topName+topScr+'</span> <span class="gvs">vs</span> <span class="'+botCls+'"><span class="gs">('+g.bottomSeed+')</span>'+botName+botScr+'</span>'+(g.upset?' <span class="upset-badge">UPSET</span>':'')+'</div>'}).join('')}).join('')+'</div>'}).join('')).join('')+'</div>'}).join('')}
 render();
 </script></body></html>
