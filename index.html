@@ -167,6 +167,19 @@
   .game-seed { color: var(--text-muted); font-size: 0.8rem; }
   .gw { font-weight: 700; color: #4ade80; }
   .gl { color: var(--text-muted); }
+  .live-badge {
+    display: inline-block; font-size: 0.6rem; padding: 2px 6px; border-radius: 6px;
+    background: rgba(74,222,128,0.2); color: #4ade80; font-weight: 700;
+    letter-spacing: 0.5px; animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  #live-indicator {
+    text-align: center; padding: 8px; font-size: 0.8rem; color: var(--text-muted);
+  }
+  .live-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #4ade80; margin-right: 6px; animation: pulse 1.5s infinite;
+  }
   
   .upset-badge {
     font-size: 0.6rem; padding: 1px 5px; border-radius: 4px;
@@ -246,6 +259,60 @@ const MATCHUPS = [
 ];
 const GAME_DETAILS={8:[81,58,"3/21"],10:[69,77,"3/21"],53:[95,72,"3/21"],0:[71,65,"3/19"],1:[64,66,"3/19"],2:[79,53,"3/20"],3:[68,60,"3/20"],4:[83,79,"3/19"],5:[92,67,"3/19"],6:[75,71,"3/20"],7:[82,71,"3/20"],15:[114,55,"3/20"],16:[61,67,"3/20"],17:[78,68,"3/19"],18:[76,47,"3/19"],19:[78,82,"3/19"],20:[105,70,"3/19"],21:[50,63,"3/19"],22:[78,47,"3/19"],30:[92,58,"3/20"],31:[76,86,"3/20"],32:[82,83,"3/19"],33:[97,78,"3/19"],34:[71,79,"3/19"],35:[73,64,"3/19"],36:[80,66,"3/20"],37:[104,71,"3/20"],45:[101,80,"3/20"],46:[77,102,"3/20"],47:[91,71,"3/20"],48:[90,70,"3/20"],49:[78,56,"3/20"],50:[82,73,"3/20"],51:[89,84,"3/20"],52:[108,74,"3/20"]};
 
+/* ESPN Live Score Integration */
+const ESPN_TO_APP={'MSU':'MICHST','NDSU':'NDAKST','KENN':'KENSAW','HAW':'HAWAII','HPU':'HIGHPT','MCN':'MCNSE','LOU':'LVILLE','USF':'SFLA','SCU':'SNCLRA','TA&M':'TEXAM','OSU':'OHIOST','SLU':'STLOU','PV':'PVAM','ISU':'IOWAST','PUR':'PURDUE','QUC':'QUEENC','CONN':'UCONN','WRST':'WRIGHT','ALA':'BAMA','HOF':'HOFSTRA','KU':'KANSAS','CBU':'CALBPTST','WIS':'WISC','VAN':'VANDY','GONZ':'GONZAG','SMC':'MARYCA','VILL':'NOVA','TTU':'TXTECH','MIA':'MIAMI','MIZ':'MIZZOU','M-OH':'MIAOH','SJU':'STJOHN','AKR':'AKRON','UNI':'NIOWA','USU':'UTAHST','TEX':'TEXAS','IDHO':'IDAHO','SIE':'SIENA','FUR':'FURMAN'};
+const TOURN_DATES=['20260319','20260320','20260321','20260322','20260326','20260327','20260328','20260329','20260404','20260406'];
+var liveInProgress={};
+function espnToApp(a){return ESPN_TO_APP[a]||a}
+function findMatchupIdx(tA,tB){for(var i=0;i<MATCHUPS.length;i++){var m=MATCHUPS[i];if((m[2]===tA&&m[4]===tB)||(m[2]===tB&&m[4]===tA))return i}return -1}
+function advanceWinner(idx){var m=MATCHUPS[idx],w=m[6],ws=(w===m[2])?m[3]:m[5],ai=m[7];if(ai<0||ai>=MATCHUPS.length)return;var nx=MATCHUPS[ai];if(idx%2===0){nx[2]=w;nx[3]=ws}else{nx[4]=w;nx[5]=ws}}
+async function fetchLiveScores(){
+  var today=new Date().toISOString().slice(0,10).replace(/-/g,'');
+  var dates=TOURN_DATES.filter(function(d){return d<=today});
+  if(!dates.length)return{completed:[],inProgress:[]};
+  var comp=[],live=[];
+  for(var di=0;di<dates.length;di++){
+    try{
+      var r=await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates='+dates[di]+'&groups=100');
+      var data=await r.json();
+      var evts=data.events||[];
+      for(var ei=0;ei<evts.length;ei++){
+        var c=evts[ei].competitions[0],st=c.status.type,ts=c.competitors;
+        var tA=espnToApp(ts[0].team.abbreviation),tB=espnToApp(ts[1].team.abbreviation);
+        var sA=parseInt(ts[0].score)||0,sB=parseInt(ts[1].score)||0;
+        var mi=findMatchupIdx(tA,tB);if(mi===-1)continue;
+        var mm=MATCHUPS[mi],topIsA=(mm[2]===tA);
+        var tSc=topIsA?sA:sB,bSc=topIsA?sB:sA;
+        var ds=parseInt(dates[di].slice(4,6))+'/'+parseInt(dates[di].slice(6,8));
+        if(st.completed){var w=ts[0].winner?tA:tB;comp.push({idx:mi,winner:w,topScore:tSc,bottomScore:bSc,date:ds})}
+        else if(st.name==='STATUS_IN_PROGRESS'){live.push({idx:mi,topScore:tSc,bottomScore:bSc,date:ds,detail:st.shortDetail||'Live'})}
+      }
+    }catch(e){console.warn('ESPN fetch error',dates[di],e)}
+  }
+  return{completed:comp,inProgress:live};
+}
+async function updateLiveScores(){
+  try{
+    var res=await fetchLiveScores(),changed=false;
+    for(var i=0;i<res.completed.length;i++){
+      var g=res.completed[i],m=MATCHUPS[g.idx];
+      if(m[6]!==g.winner){m[6]=g.winner;advanceWinner(g.idx);changed=true}
+      GAME_DETAILS[g.idx]=[g.topScore,g.bottomScore,g.date];
+    }
+    liveInProgress={};
+    for(var j=0;j<res.inProgress.length;j++){
+      var lg=res.inProgress[j];
+      GAME_DETAILS[lg.idx]=[lg.topScore,lg.bottomScore,lg.date];
+      liveInProgress[lg.idx]=lg.detail;changed=true;
+    }
+    if(changed)render();
+    var el=document.getElementById('live-indicator');
+    if(!el){el=document.createElement('div');el.id='live-indicator';document.querySelector('.header').appendChild(el)}
+    if(res.inProgress.length>0){el.innerHTML='<span class="live-dot"></span>LIVE — '+res.inProgress.length+' game'+(res.inProgress.length!==1?'s':'')+' in progress'}
+    else{el.innerHTML='Scores auto-update every 60s'}
+  }catch(e){console.error('Live update error:',e)}
+}
+
 const PICKS = {
   "Cristian Boise":["DUKE","OHIOST","STJOHN","KANSAS","LVILLE","MICHST","UCLA","UCONN","DUKE","STJOHN","MICHST","UCONN","DUKE","UCONN","DUKE","FLA","IOWA","VANDY","NEB","VCU","ILL","TEXAM","HOU","FLA","VANDY","ILL","HOU","FLA","HOU","HOU","ARIZ","NOVA","WISC","ARK","BYU","GONZAG","MIAMI","PURDUE","ARIZ","ARK","GONZAG","PURDUE","ARIZ","PURDUE","ARIZ","MICH","STLOU","TXTECH","BAMA","TENN","UVA","UK","IOWAST","MICH","BAMA","UVA","IOWAST","MICH","IOWAST","MICH","HOU","ARIZ","ARIZ"],
   "Josué Boise":["DUKE","OHIOST","STJOHN","KANSAS","LVILLE","MICHST","UCLA","UCONN","DUKE","STJOHN","LVILLE","UCONN","DUKE","UCONN","DUKE","FLA","IOWA","VANDY","NEB","VCU","ILL","TEXAM","HOU","FLA","VANDY","ILL","HOU","FLA","HOU","HOU","ARIZ","NOVA","WISC","ARK","BYU","GONZAG","MIAMI","PURDUE","ARIZ","ARK","GONZAG","PURDUE","ARIZ","PURDUE","ARIZ","MICH","STLOU","TXTECH","BAMA","MIAOH","UVA","UK","IOWAST","MICH","TXTECH","UVA","IOWAST","MICH","IOWAST","MICH","DUKE","MICH","DUKE"],
@@ -269,7 +336,7 @@ const TEAM_NAMES = {"DUKE":"Duke","SIENA":"Siena","OHIOST":"Ohio St.","TCU":"TCU
 function computeScores(){const r=[];for(const[n,picks]of Object.entries(PICKS)){let t=0;const br={2:0,3:0,4:0,5:0,6:0,7:0};let mx=0;for(let i=0;i<63;i++){const m=MATCHUPS[i],rd=m[0],w=m[6],p=picks[i],pts=SCORING[rd];if(w&&w===p){t+=pts;br[rd]+=pts}if(w){if(w===p)mx+=pts}else{if(isTeamAlive(p))mx+=pts}}const tm=FAMILY_TEAMS.Boise.includes(n)?'boise':'burditt';r.push({name:n,team:tm,pts:t,max:t+mx,byRound:br})}r.sort((a,b)=>b.pts-a.pts||b.max-a.max);let rk=1;for(let i=0;i<r.length;i++){if(i>0&&r[i].pts<r[i-1].pts)rk=i+1;r[i].rank=rk}return r}
 function isTeamAlive(ab){for(let i=0;i<63;i++){const m=MATCHUPS[i],w=m[6];if(!w)continue;if((m[2]===ab||m[4]===ab)&&w!==ab)return false}return true}
 function getCompletedRounds(){const rc={},rd={};for(let i=0;i<63;i++){const r=MATCHUPS[i][0];rc[r]=(rc[r]||0)+1;if(MATCHUPS[i][6])rd[r]=(rd[r]||0)+1}const s={};for(const r of[2,3,4,5,6,7]){const t=rc[r]||0,d=rd[r]||0;if(d===t&&t>0)s[r]='completed';else if(d>0)s[r]='active';else s[r]='upcoming'}return s}
-function getResultsByRegion(){var rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){if(m[6]){var d=GAME_DETAILS?GAME_DETAILS[i]:null;rg[m[1]].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:(m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5]),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null})}});return rg}
+function getResultsByRegion(){var rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){var hasW=!!m[6],isLive=!!liveInProgress[i],hasBoth=m[2]&&m[4];if(hasW||(isLive&&hasBoth)){var d=GAME_DETAILS[i]||null;var reg=m[1];if(reg!=='F'&&rg[reg]!==undefined){rg[reg].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:m[6]&&((m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5])),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null,live:liveInProgress[i]||null})}}});return rg}
 function switchTab(tn,btn){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+tn).classList.add('active');btn.classList.add('active')}
 function rankColor(r){return r===1?'rank-1':r===2?'rank-2':r===3?'rank-3':''}
 function renderResults(){
@@ -286,8 +353,12 @@ var body=Object.keys(byRd).sort().map(function(rd){
 var rg=byRd[rd];
 var rh=Object.keys(byRd).length>1?'<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 16px 2px;font-weight:600">'+rdNames[rd]+'</div>':'';
 return rh+rg.map(function(g){
-var tn=TEAM_NAMES;var tW=g.winner===g.topTeam;
-var tN=tn[g.topTeam]||g.topTeam;var bN=tn[g.bottomTeam]||g.bottomTeam;
+var tn=TEAM_NAMES;var tN=tn[g.topTeam]||g.topTeam;var bN=tn[g.bottomTeam]||g.bottomTeam;
+if(g.live){
+var tSc=g.topScore!==null?g.topScore:"";var bSc=g.bottomScore!==null?g.bottomScore:"";
+var lsc=tSc!==""&&bSc!==""?tSc+" - "+bSc:"";
+return'<div class="game-row"><div class="game-team"><span class="game-seed">('+g.topSeed+')</span> '+tN+'</div><div class="game-score"><span class="live-badge">LIVE</span> '+lsc+'<div style="font-size:0.7rem;color:var(--text-muted)">'+g.live+'</div></div><div class="game-team right">'+bN+' <span class="game-seed">('+g.bottomSeed+')</span></div></div>'}
+var tW=g.winner===g.topTeam;
 var tC=tW?"gw":"gl";var bC=tW?"gl":"gw";
 var tS=g.topScore!==null?g.topScore:"";var bS=g.bottomScore!==null?g.bottomScore:"";
 var sc=tS!==""&&bS!==""?tS+" - "+bS:"vs";
@@ -312,4 +383,6 @@ const mx=Math.max(...st.map(p=>p.pts));
 const rr=getResultsByRegion(),co={"E":"#4a90d9","W":"#d94a4a","S":"#4caf50","M":"#ff8c00"};
 renderResults()}
 render();
+updateLiveScores();
+setInterval(updateLiveScores, 60000);
 </script></body></html>
