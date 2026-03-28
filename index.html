@@ -453,19 +453,20 @@ const TEAM_NAMES = {"DUKE":"Duke","SIENA":"Siena","OHIOST":"Ohio St.","TCU":"TCU
 function computeScores(){const r=[];for(const[n,picks]of Object.entries(PICKS)){let t=0;const br={2:0,3:0,4:0,5:0,6:0,7:0};let mx=0;for(let i=0;i<63;i++){const m=MATCHUPS[i],rd=m[0],w=m[6],p=picks[i],pts=SCORING[rd];if(w&&w===p){t+=pts;br[rd]+=pts}if(w){if(w===p)mx+=pts}else{if(isTeamAlive(p))mx+=pts}}const tm=FAMILY_TEAMS.Boise.includes(n)?'boise':'burditt';r.push({name:n,team:tm,pts:t,max:mx,byRound:br})}r.sort((a,b)=>b.pts-a.pts||b.max-a.max);let rk=1;for(let i=0;i<r.length;i++){if(i>0&&r[i].pts<r[i-1].pts)rk=i+1;r[i].rank=rk}return r}
 function isTeamAlive(ab){for(let i=0;i<63;i++){const m=MATCHUPS[i],w=m[6];if(!w)continue;if((m[2]===ab||m[4]===ab)&&w!==ab)return false}return true}
 function getCompletedRounds(){const rc={},rd={};for(let i=0;i<63;i++){const r=MATCHUPS[i][0];rc[r]=(rc[r]||0)+1;if(MATCHUPS[i][6])rd[r]=(rd[r]||0)+1}const s={};for(const r of[2,3,4,5,6,7]){const t=rc[r]||0,d=rd[r]||0;if(d===t&&t>0)s[r]='completed';else if(d>0)s[r]='active';else s[r]='upcoming'}return s}
-function getResultsByRegion(){var rg={"E":[],"S":[],"W":[],"M":[]};MATCHUPS.forEach(function(m,i){var hasW=!!m[6],isLive=!!liveInProgress[i],hasBoth=m[2]&&m[4];if(hasW||(isLive&&hasBoth)){var d=GAME_DETAILS[i]||null;var reg=m[1];if(reg!=='F'&&rg[reg]!==undefined){rg[reg].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:m[6]&&((m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5])),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null,live:liveInProgress[i]||null})}}});return rg}
+function getResultsByRegion(){var rg={"E":[],"S":[],"W":[],"M":[],"F":[]};MATCHUPS.forEach(function(m,i){var hasW=!!m[6],isLive=!!liveInProgress[i],hasBoth=m[2]&&m[4];if(hasW||(isLive&&hasBoth)){var d=GAME_DETAILS[i]||null;var reg=m[1];if(rg[reg]!==undefined){rg[reg].push({idx:i,round:m[0],topTeam:m[2],topSeed:m[3],bottomTeam:m[4],bottomSeed:m[5],winner:m[6],upset:m[6]&&((m[6]===m[4]&&m[5]>m[3])||(m[6]===m[2]&&m[3]>m[5])),topScore:d?d[0]:null,bottomScore:d?d[1]:null,date:d?d[2]:null,live:liveInProgress[i]||null})}}});return rg}
 function switchTab(tn,btn){document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+tn).classList.add('active');btn.classList.add('active');var lw=document.getElementById('logo-wrap');if(tn==='results'){lw.classList.add('show-ff')}else{lw.classList.remove('show-ff')}}
 function rankColor(r){return r===1?'rank-1':r===2?'rank-2':r===3?'rank-3':''}
 function renderResults(){
-var rn={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST"};
-var rc={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12"};
+var rn={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST","F":"FINAL FOUR"};
+var rc={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12","F":"#9b59b6"};
 var rdNames={2:"Round 1",3:"Round 2",4:"Sweet 16",5:"Elite Eight",6:"Final Four",7:"Championship"};
 var rbr=getResultsByRegion();
-var out=["E","S","W","M"].map(function(r){
+var out=["E","S","W","M","F"].map(function(r){
 var games=rbr[r];if(!games.length)return"";
 var ups=games.filter(function(g){return g.upset}).length;
 var byRd={};games.forEach(function(g){if(!byRd[g.round])byRd[g.round]=[];byRd[g.round].push(g)});
-var hdr='<div class="region-card"><div class="region-header" style="border-left:3px solid '+rc[r]+'">'+rn[r]+' Region'+(ups?' <span class="seed-badge">'+ups+' upset'+(ups>1?'s':'')+'</span>':'')+'</div>';
+var regLabel=r==='F'?rn[r]:rn[r]+' Region';
+var hdr='<div class="region-card"><div class="region-header" style="border-left:3px solid '+rc[r]+'">'+regLabel+(ups?' <span class="seed-badge">'+ups+' upset'+(ups>1?'s':'')+'</span>':'')+'</div>';
 var body=Object.keys(byRd).sort().map(function(rd){
 var rg=byRd[rd];
 var rh=Object.keys(byRd).length>1?'<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 16px 2px;font-weight:600">'+rdNames[rd]+'</div>':'';
@@ -474,7 +475,12 @@ var tn=TEAM_NAMES;var tN=tn[g.topTeam]||g.topTeam;var bN=tn[g.bottomTeam]||g.bot
 if(g.live){
 var tSc=g.topScore!==null?g.topScore:"";var bSc=g.bottomScore!==null?g.bottomScore:"";
 var lsc=tSc!==""&&bSc!==""?tSc+" - "+bSc:"";
-return'<div class="game-row"><div class="game-team"><span class="game-seed">('+g.topSeed+')</span> '+tN+'</div><div class="game-score"><span class="live-badge">LIVE</span> '+lsc+'<div style="font-size:0.7rem;color:var(--text-muted)">'+g.live+'</div></div><div class="game-team right">'+bN+' <span class="game-seed">('+g.bottomSeed+')</span></div></div>'}
+var livePicksHtml=Object.keys(PICKS).sort().map(function(pn){
+  var pick=PICKS[pn][g.idx];if(!pick||pick==='')return'';
+  var pickName=TEAM_NAMES[pick]||pick;
+  return'<div class="pick-row"><span class="pick-player">'+pn.split(' ')[0]+'</span><span class="pick-team">'+pickName+'</span><span class="pick-pts"></span></div>'
+}).join('');
+return'<div class="game-row" onclick="togglePicks(this)"><div class="game-team"><span class="game-seed">('+g.topSeed+')</span> '+tN+'</div><div class="game-score"><span class="live-badge">LIVE</span> '+lsc+'<div style="font-size:0.7rem;color:var(--text-muted)">'+g.live+'</div></div><div class="game-team right">'+bN+' <span class="game-seed">('+g.bottomSeed+')</span></div></div><div class="picks-panel">'+livePicksHtml+'</div>'}
 var tW=g.winner===g.topTeam;
 var tC=tW?"gw":"gl";var bC=tW?"gl":"gw";
 var tS=g.topScore!==null?g.topScore:"";var bS=g.bottomScore!==null?g.bottomScore:"";
