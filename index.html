@@ -257,6 +257,60 @@
   .player-name { cursor: pointer; }
   .player-name:hover { color: var(--gold); }
 
+  .picks-modal {
+    display: none; position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%; z-index: 1000;
+    background: var(--bg); flex-direction: column; overflow-y: auto;
+  }
+  .picks-modal.open { display: flex; }
+  .picks-modal-header {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 18px 20px 14px; background: #2d3a52;
+    border-bottom: 1px solid #3a4a65; flex-shrink: 0; gap: 10px;
+  }
+  .picks-modal-name { font-size: 1.5rem; font-weight: 900; color: var(--gold); }
+  .picks-modal-pills { display: flex; gap: 10px; align-items: center; }
+  .picks-modal-pill {
+    font-size: 0.8rem; font-weight: 700; padding: 6px 16px; border-radius: 20px;
+  }
+  .picks-modal-pill.score { background: rgba(255,255,255,0.1); color: var(--text); }
+  .picks-modal-pill.max { background: rgba(255,255,255,0.1); color: var(--text); }
+  .picks-modal-back {
+    background: rgba(255,255,255,0.1); color: var(--text); border: none; border-radius: 20px;
+    padding: 6px 16px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+  }
+  .picks-modal-back:hover { background: rgba(255,255,255,0.2); }
+  .picks-modal-body { padding: 16px 20px; max-width: 700px; width: 100%; margin: 0 auto; }
+  .picks-round-header {
+    font-size: 1rem; font-weight: 800; padding: 16px 0 6px;
+    border-bottom: 2px solid var(--card-border); margin-bottom: 8px; color: var(--text);
+  }
+  .picks-round-header .pts-label {
+    font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;
+  }
+  .picks-region-header {
+    font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 10px 0 4px; display: flex; align-items: center; gap: 6px;
+  }
+  .picks-region-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+  }
+  .picks-game {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 7px 0; border-bottom: 1px solid rgba(42,48,64,0.4);
+  }
+  .picks-game:last-child { border-bottom: none; }
+  .picks-game-matchup { font-size: 0.85rem; color: var(--text-muted); }
+  .picks-game-result { text-align: right; font-size: 0.85rem; }
+  .picks-game-result .pick-line { font-weight: 600; }
+  .picks-game-result .pick-line.correct { color: #4ade80; }
+  .picks-game-result .pick-line.wrong { color: var(--red); }
+  .picks-game-result .pick-line.pending { color: var(--text); }
+  .picks-game-result .pick-line.eliminated { color: var(--red); }
+  .picks-game-result .pick-pts { font-weight: 700; color: var(--gold); margin-left: 6px; }
+  .picks-game-result .actual-line { font-size: 0.7rem; color: var(--text-muted); }
+
   .bracket-modal {
     display: none; position: fixed; top: 0; left: 0;
     width: 100%; height: 100%; z-index: 1000;
@@ -511,8 +565,8 @@ const lc=bt>ut?'boise':ut>bt?'burditt':'tied',lt=bt>ut?'Boise +'+df:ut>bt?'Burdi
 document.getElementById('team-battle-content').innerHTML='<div class="team-side boise"><div class="team-name">Boise</div><div class="team-score">'+bt+'</div><div class="team-avg">avg '+ba+' pts/player</div></div><div class="vs-divider"><div class="vs-text">VS</div><div class="lead-indicator '+lc+'">'+lt+'</div></div><div class="team-side burditt"><div class="team-name">Burditt</div><div class="team-score">'+ut+'</div><div class="team-avg">avg '+ua+' pts/player</div></div>';
 const tt=bt+ut||1;document.getElementById('score-bar').innerHTML='<div class="boise-fill" style="width:'+(bt/tt*100).toFixed(1)+'%"></div><div class="burditt-fill" style="width:'+(ut/tt*100).toFixed(1)+'%"></div>';
 const bs=st.filter(p=>p.team==='boise').sort((a,b)=>b.pts-a.pts),us=st.filter(p=>p.team==='burditt').sort((a,b)=>b.pts-a.pts);
-document.getElementById('boise-breakdown').innerHTML=bs.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell">'+p.name.split(' ')[0]+'</td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
-document.getElementById('burditt-breakdown').innerHTML=us.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell">'+p.name.split(' ')[0]+'</td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
+document.getElementById('boise-breakdown').innerHTML=bs.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell"><span class="player-name" onclick="showPlayerPicks(\''+p.name.replace(/'/g,"\\'")+'\')">'+p.name.split(' ')[0]+'</span></td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
+document.getElementById('burditt-breakdown').innerHTML=us.map((p,i)=>'<tr><td class="rank-cell">'+(i+1)+'</td><td class="name-cell"><span class="player-name" onclick="showPlayerPicks(\''+p.name.replace(/'/g,"\\'")+'\')">'+p.name.split(' ')[0]+'</span></td><td class="pts-cell" style="text-align:right">'+p.pts+'</td><td class="round-val max-cell">'+p.max+'</td></tr>').join('');
 const mx=Math.max(...st.map(p=>p.pts));
 const rr=getResultsByRegion(),co={"E":"#4a90d9","W":"#d94a4a","S":"#4caf50","M":"#ff8c00"};
 renderResults()}
@@ -553,9 +607,79 @@ function togglePicks(el) {
   }
 }
 
+function showPlayerPicks(name){
+  var picks=PICKS[name];if(!picks)return;
+  var sc=computeScores().find(function(s){return s.name===name});
+  var regionColors={"E":"#4a90d9","S":"#50c878","W":"#e74c3c","M":"#f39c12","F":"#9b59b6"};
+  var regionNames={"E":"EAST","S":"SOUTH","W":"WEST","M":"MIDWEST","F":"FINAL FOUR"};
+  var rdNames={2:"Round 1",3:"Round 2",4:"Sweet 16",5:"Elite Eight",6:"Final Four",7:"Championship"};
+  var rdPts={2:1,3:2,4:4,5:8,6:16,7:32};
+  // group matchups by round, then by region
+  var byRound={};
+  for(var i=0;i<63;i++){
+    var m=MATCHUPS[i],rd=m[0],reg=m[1];
+    if(!byRound[rd])byRound[rd]={};
+    if(!byRound[rd][reg])byRound[rd][reg]=[];
+    byRound[rd][reg].push({idx:i,m:m});
+  }
+  var html='';
+  [2,3,4,5,6,7].forEach(function(rd){
+    var regions=byRound[rd];if(!regions)return;
+    html+='<div class="picks-round-header">'+rdNames[rd]+'<span class="pts-label">('+rdPts[rd]+' Pts)</span></div>';
+    var regOrder=rd>=6?["F"]:["E","S","W","M"];
+    regOrder.forEach(function(reg){
+      var games=regions[reg];if(!games)return;
+      html+='<div class="picks-region-header"><span class="picks-region-dot" style="background:'+regionColors[reg]+'"></span> '+regionNames[reg]+(rd<6?' REGION':'')+'</div>';
+      games.forEach(function(g){
+        var m=g.m,idx=g.idx,pick=picks[idx];
+        var topName=TEAM_NAMES[m[2]]||m[2]||'???';
+        var botName=TEAM_NAMES[m[4]]||m[4]||'???';
+        var matchup=topName+' vs '+botName;
+        var pickName=TEAM_NAMES[pick]||pick||'???';
+        var winner=m[6];
+        var resultHtml='';
+        if(winner){
+          if(pick===winner){
+            resultHtml='<span class="pick-line correct">&#10003; '+pickName+'<span class="pick-pts">+'+rdPts[rd]+'</span></span>';
+          }else{
+            var actualName=TEAM_NAMES[winner]||winner;
+            resultHtml='<span class="pick-line wrong">&#10007; '+pickName+'<span class="pick-pts">0</span></span><div class="actual-line">Actual: '+actualName+'</div>';
+          }
+        }else if(liveInProgress[idx]!==undefined){
+          resultHtml='<span class="pick-line pending">'+pickName+'</span>';
+        }else if(!isTeamAlive(pick)){
+          resultHtml='<span class="pick-line eliminated">&#10007; '+pickName+'</span><div class="actual-line">Team Eliminated</div>';
+        }else{
+          resultHtml='<span class="pick-line pending">'+pickName+'</span>';
+        }
+        html+='<div class="picks-game"><div class="picks-game-matchup">'+matchup+'</div><div class="picks-game-result">'+resultHtml+'</div></div>';
+      });
+    });
+  });
+  document.getElementById('picks-modal-name').textContent=name;
+  document.getElementById('picks-modal-score').textContent='Total Score: '+(sc?sc.pts:0);
+  document.getElementById('picks-modal-max').textContent='Max Possible: '+(sc?sc.max:0);
+  document.getElementById('picks-modal-body').innerHTML=html;
+  document.getElementById('picks-modal').classList.add('open');
+}
+function closePlayerPicks(){
+  document.getElementById('picks-modal').classList.remove('open');
+}
+
 
 </script>
 <div class="page-footer" id="last-updated"></div>
+<div class="picks-modal" id="picks-modal">
+  <div class="picks-modal-header">
+    <div class="picks-modal-name" id="picks-modal-name"></div>
+    <div class="picks-modal-pills">
+      <span class="picks-modal-pill score" id="picks-modal-score"></span>
+      <span class="picks-modal-pill max" id="picks-modal-max"></span>
+      <button class="picks-modal-back" onclick="closePlayerPicks()">&larr; Back to Player Standings</button>
+    </div>
+  </div>
+  <div class="picks-modal-body" id="picks-modal-body"></div>
+</div>
 <div class="bracket-modal" id="bracket-modal">
   <div class="bracket-modal-header">
     <div class="bracket-modal-title" id="bracket-modal-title"></div>
